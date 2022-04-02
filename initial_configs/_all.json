@@ -1,0 +1,5 @@
+{
+	"lidar_inputs": 360,
+	"other_inputs": 4,
+	"possible_actions":15
+}
