@@ -28,7 +28,6 @@ class QNet(nn.Module):
             stride = lidar_dict["stride"]
             self.lidar_conv = nn.Conv1d(1, output_channels, kernel_size, stride=stride)
             len_out = math.floor((self.lidar_inputs - kernel_size - 2) / stride) + 1
-            self.lidar_shape = [output_channels, len_out]
             outshape = output_channels * len_out + self.other_inputs
             self.lidar_activation = activation_for_string(lidar_dict["activation"])
 
@@ -47,7 +46,6 @@ class QNet(nn.Module):
                 self.layers.append(activation_for_string(layer_dict["activation"]))
                 if "dropout" in layer_dict:
                     self.layers.append(nn.Dropout(layer_dict["dropout"]))
-                    
             elif layertype == "lstm":
                 dropout = layer_dict["dropout"]
                 self.layers.append(nn.LSTM(outshape, output_dim))
@@ -64,9 +62,12 @@ class QNet(nn.Module):
 
         # The last layer is always fully-connected with linear activation
         self.layers.append(nn.Linear(outshape, all_config["possible_actions"]))
+
+    # Reset the hidden state of the network between episodes
+    def reset_hidden(self):
+        self.hidden_data = {}
                                                        
     def forward(self, x):
-
         # Do we need to do convolution on the lidar data?
         if self.lidar_conv is not None:
             lidar_in = x[:, self.other_inputs:]
