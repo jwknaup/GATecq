@@ -70,8 +70,8 @@ class QNet(nn.Module):
     def forward(self, x):
         # Do we need to do convolution on the lidar data?
         if self.lidar_conv is not None:
-            lidar_in = x[:, self.other_inputs:]
             other_in = x[:, :self.other_inputs]
+            lidar_in = x[:, self.other_inputs:]
             lidar_out = self.lidar_conv(lidar_in)
             lidar_out = self.lidar_activation(lidar_out)
             if len(lidar_out.shape) < 3:
@@ -80,7 +80,7 @@ class QNet(nn.Module):
             lidar_out = torch.flatten(lidar_out, start_dim=1)
             x = torch.cat((other_in, lidar_out), dim=1)
         for i in range(len(self.layers)):
-            # Do have hidden state data for this layer?
+            # Do I have hidden state data for this layer?
             if i in self.hidden_data:
                 hidden_data = self.hidden_data[i]
                 x, hidden_data = self.layers[i](x, hidden_data)
