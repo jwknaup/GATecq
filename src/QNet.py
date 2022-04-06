@@ -2,6 +2,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 import math
+import logging
+import sys
 
 def activation_for_string(act_str):
     if act_str == "relu":
@@ -27,7 +29,7 @@ class QNet(nn.Module):
             kernel_size = lidar_dict["kernel_size"]
             stride = lidar_dict["stride"]
             self.lidar_conv = nn.Conv1d(1, output_channels, kernel_size, stride=stride)
-            len_out = math.floor((self.lidar_inputs - kernel_size - 2) / stride) + 1
+            len_out = math.floor((self.lidar_inputs - (kernel_size - 1)) / stride) + 1
             outshape = output_channels * len_out + self.other_inputs
             self.lidar_activation = activation_for_string(lidar_dict["activation"])
 
@@ -58,7 +60,7 @@ class QNet(nn.Module):
                     self.layers.append(nn.Dropout(layer_dict["dropout"]))
                 outshape = output_dim
             else:
-                print(f"Unknown layer type: {layertype}")
+                print(f"Unknown layer type: {layertype}", file=sys.stderr)
 
         # The last layer is always fully-connected with linear activation
         self.layers.append(nn.Linear(outshape, all_config["possible_actions"]))
@@ -78,22 +80,27 @@ class QNet(nn.Module):
                 lidar_out = lidar_out.unsqueeze(0)
             # Add the other data back in
             lidar_out = torch.flatten(lidar_out, start_dim=1)
+            logging.debug(f"Convolution {self.lidar_conv} yields {lidar_out.shape}")
             x = torch.cat((other_in, lidar_out), dim=1)
+            logging.debug(f"Adding other inputs yields {x.shape}")
+
         for i in range(len(self.layers)):
+            layer = self.layers[i]
             # Do I have hidden state data for this layer?
             if i in self.hidden_data:
                 hidden_data = self.hidden_data[i]
-                x, hidden_data = self.layers[i](x, hidden_data)
+                x, hidden_data = layer(x, hidden_data)
+                logging.debug(f"Layer {layer} yields {x.shape}")
                 # Update hidden state
                 self.hidden_data[i] = hidden_data
             else:
-                x = self.layers[i](x)
-
+                x = layer(x)
                 # Is this layer an LSTM or GRU?
                 if type(x) is tuple:
                     x, hidden_data = x
                     self.hidden_data[i] = hidden_data
-            
+                logging.debug(f"Layer {layer} yields {x.shape}")
+
         return x    
 
 
