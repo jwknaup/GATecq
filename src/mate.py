@@ -25,6 +25,7 @@ def mix_layers(a, b):
     result = {'type':a['type']}
     result['output_dim'] = int_between(a, b, 'output_dim')
 
+    
     if result['type'] == 'linear':
         activation = a['activation'];
         if random.random() < 0.5:

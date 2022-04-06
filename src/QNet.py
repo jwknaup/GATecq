@@ -13,6 +13,11 @@ def activation_for_string(act_str):
     if act_str == "tanh":
         return nn.Tanh()
 
+def dim_for_convolution(in_dim, kernel_size, stride, channels):
+    steps = 1 + (in_dim - kernel_size) // stride
+    return channels * steps
+
+
 class QNet(nn.Module):
     def __init__(self, config, all_config):
         super().__init__()
@@ -29,8 +34,8 @@ class QNet(nn.Module):
             kernel_size = lidar_dict["kernel_size"]
             stride = lidar_dict["stride"]
             self.lidar_conv = nn.Conv1d(1, output_channels, kernel_size, stride=stride)
-            len_out = math.floor((self.lidar_inputs - (kernel_size - 1)) / stride) + 1
-            outshape = output_channels * len_out + self.other_inputs
+            len_out = dim_for_convolution(self.lidar_inputs, kernel_size, stride, output_channels)
+            outshape = len_out + self.other_inputs
             self.lidar_activation = activation_for_string(lidar_dict["activation"])
 
         else:
@@ -80,9 +85,9 @@ class QNet(nn.Module):
                 lidar_out = lidar_out.unsqueeze(0)
             # Add the other data back in
             lidar_out = torch.flatten(lidar_out, start_dim=1)
-            logging.debug(f"Convolution {self.lidar_conv} yields {lidar_out.shape}")
+            # logging.debug(f"Convolution {self.lidar_conv} yields {lidar_out.shape}")
             x = torch.cat((other_in, lidar_out), dim=1)
-            logging.debug(f"Adding other inputs yields {x.shape}")
+            # logging.debug(f"Adding other inputs yields {x.shape}")
 
         for i in range(len(self.layers)):
             layer = self.layers[i]
@@ -99,7 +104,7 @@ class QNet(nn.Module):
                 if type(x) is tuple:
                     x, hidden_data = x
                     self.hidden_data[i] = hidden_data
-                logging.debug(f"Layer {layer} yields {x.shape}")
+                # logging.debug(f"Layer {layer} yields {x.shape}")
 
         return x    
 
