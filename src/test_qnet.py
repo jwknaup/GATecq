@@ -11,6 +11,7 @@ def test_qnet(config, all_config, in_data):
     print(f"\n*** Candidate {config['name']} ***")
     print(config)
     qnet = QNet.QNet(config, all_conf)
+    print(f"trainable parameters: {qnet.trainable_parameter_count()}")
     print(f"Input: {in_data[0].shape}")
     result = qnet(in_data[0])
     print(f"Output 0: {result.shape}")

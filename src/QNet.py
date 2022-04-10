@@ -73,6 +73,21 @@ class QNet(nn.Module):
     # Reset the hidden state of the network between episodes
     def reset_hidden(self):
         self.hidden_data = {}
+
+    # To get an idea of how complex the network is
+    def trainable_parameter_count(self):
+        count = 0
+        if self.lidar_conv is not None:
+            cnn_params = self.lidar_conv.parameters()
+            for param in cnn_params:
+                if param.requires_grad:
+                    count += param.numel()
+        for layer in self.layers:
+            params = layer.parameters()
+            for param in params:
+                if param.requires_grad:
+                    count += param.numel()
+        return count
                                                        
     def forward(self, x):
         # Do we need to do convolution on the lidar data?
@@ -95,7 +110,7 @@ class QNet(nn.Module):
             if i in self.hidden_data:
                 hidden_data = self.hidden_data[i]
                 x, hidden_data = layer(x, hidden_data)
-                logging.debug(f"Layer {layer} yields {x.shape}")
+                # logging.debug(f"Layer {layer} yields {x.shape}")
                 # Update hidden state
                 self.hidden_data[i] = hidden_data
             else:
