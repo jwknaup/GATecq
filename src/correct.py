@@ -7,6 +7,31 @@ import QNet
 # Basic sanity check/corrections for mutated candidates
 def correct_candidate(candidate, all):
 
+    # Every candidate should have at least one recurrent layer
+    has_recurrent = False
+    layers = candidate['layers']
+    for layer in layers:
+        if layer['type'] == 'lstm' or layer['type'] == 'gru':
+            has_recurrent = True
+            break
+
+    if not has_recurrent:
+        location = len(layers)//2
+        if random.random() < 0.5:
+            type = 'lstm'
+        else:
+            type = 'gru'
+            
+        if location < len(layers) - 1:
+            # What's the output dim of what's already there?
+            output_dim = layers[location]['output_dim']
+        else:
+            output_dim = all['possible_actions']
+
+        new_layer = {'type': type, 'output_dim':output_dim, 'dropout': 0.1}
+        logging.debug(f"No memory: Adding {new_layer} at {location}")
+        candidate['layers'].insert(location, new_layer)
+
     # Overall, the dimension should go down as we pass through the network
     if 'lidar_conv' in candidate:
         conv = candidate['lidar_conv']
@@ -20,7 +45,7 @@ def correct_candidate(candidate, all):
 
         # Should not be less than possible actions
         if next_dim < all['possible_actions']:
-            if expansion > 1:   # If we're expanding, we should not shrink
+            if expansion > 1:   
                 next_dim = random.randrange(all['possible_actions'], current_dim)
             else:
                 next_dim = all['possible_actions']

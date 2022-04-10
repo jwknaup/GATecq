@@ -18,7 +18,7 @@ def mutate_conv(conv, all, expansion, mutation_rate):
 def mutate_candidate(candidate, all, expansion, mutation_rate):
 
     # Should I duplicate a layer?
-    layer_duplication_probability = 0.4 * mutation_rate * expansion
+    layer_duplication_probability = 0.3 * mutation_rate * expansion
     if random.random() < layer_duplication_probability:
         layer_to_duplicate = random.randint(0, len(candidate['layers']) - 1)
         new_layer = candidate['layers'][layer_to_duplicate].copy()
@@ -26,14 +26,14 @@ def mutate_candidate(candidate, all, expansion, mutation_rate):
         logging.debug(f"Duplicated layer {layer_to_duplicate}")
 
     # Should I delete a layer?
-    layer_removal_probability = 0.4 * mutation_rate / expansion
+    layer_removal_probability = 0.3 * mutation_rate / expansion
     if random.random() < layer_removal_probability:
         layer_to_delete = random.randint(0, len(candidate['layers']) - 1)
         candidate['layers'].pop(layer_to_delete)
         logging.debug(f"Deleted layer {layer_to_delete}")
 
     layer_count = len(candidate['layers'])
-    layer_mutation_probability = 0.5 * mutation_rate / layer_count
+    layer_mutation_probability = 0.9 * mutation_rate / layer_count
 
     if 'lidar_conv' in candidate:
         # Should I mutate the lidar_conv?
