@@ -13,6 +13,9 @@ def activation_for_string(act_str):
     if act_str == "tanh":
         return nn.Tanh()
 
+def all_activations():
+    return ["relu", "sigmoid", "tanh"]
+
 def dim_for_convolution(in_dim, kernel_size, stride, channels):
     steps = 1 + (in_dim - kernel_size) // stride
     return channels * steps
