@@ -42,6 +42,7 @@ new_name = io.new_name()
 print(f"\n*** Mating 0 and 2 to make {new_name} ***")
 child_conf = mate.mate(test_conf0, test_conf2, new_name)
 print(child_conf)
+
 print(f"\n*** Mutating {new_name} ***")
 mutate.mutate_candidate(child_conf, all_conf, 0.8, 0.8)
 
