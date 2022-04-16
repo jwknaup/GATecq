@@ -1,25 +1,30 @@
+import os
 import json
 import random
+
 
 # This is designed to create an abstraction for reading and writing 
 # the candidates and their stats so I can move it to a database or 
 # FTP server.
-class io_layer:
+class IOLayer:
+    def __init__(self, config_folder):
+        self.config_folder = config_folder
+
     # Get the data shared by all configurations
     def fetch_all_config(self):
-        with open("../initial_configs/_all.json") as f:
+        with open(os.path.join(self.config_folder, "_all.json")) as f:
             result = json.load(f)
         return result
 
     # Get the configuration-specific data
     def fetch_config(self, config_name):
-        with open(f"../initial_configs/{config_name}.conf") as f:
+        with open(os.path.join(self.config_folder, f"{config_name}.conf")) as f:
             result = json.load(f)
         return result
 
     # Save the configuration
     def store_config(self,config):
-        with open(f"../initial_configs/{config['name']}.conf", "w") as f:
+        with open(os.path.join(self.config_folder, f"{config['name']}.conf"), "w") as f:
             json.dump(config, f, indent=2)
 
     # Create and return a unique name for a new candidate
