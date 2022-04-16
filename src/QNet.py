@@ -108,7 +108,7 @@ class QNet(nn.Module):
 
         return x    
 
-
-
-
-
+    def backprop(self, tau):
+        # TODO implement backprop to train net
+        pass
+        # print(tau)

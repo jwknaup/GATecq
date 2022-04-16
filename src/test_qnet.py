@@ -1,5 +1,5 @@
 import QNet
-import io_layer
+import iolayer
 import numpy as np 
 import torch
 import mate
@@ -19,7 +19,7 @@ def test_qnet(config, all_config, in_data):
     
 logging.basicConfig(level=logging.DEBUG)
 
-io = io_layer.io_layer()
+io = iolayer.IOLayer()
 
 all_conf = io.fetch_all_config()
 
