@@ -3,22 +3,7 @@ import Harness
 import io_layer
 import numpy as np 
 import torch
-import mate
-import mutate
-import correct  
 import logging
-
-def test_qnet(config, all_config, in_data):
-    print(f"\n*** Candidate {config['name']} ***")
-    print(config)
-    qnet = QNet.QNet(config, all_config)
-    print(f"trainable parameters: {qnet.trainable_parameter_count()}")
-    print(f"Input: {in_data[0].shape}")
-    result = qnet(in_data[0])
-    print(f"Output 0: {result.shape}")
-    result = qnet(in_data[1])
-    print(f"Output 1: {result.shape}")
-
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -46,7 +31,4 @@ test_harness.set_reward_for_last_action(5.0)
 
 test_harness.end_rollout()
 test_harness.learn_from_replay_buffer()
-
-
-
 
