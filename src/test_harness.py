@@ -20,18 +20,18 @@ in_data = [test_data1, test_data2]
 test_conf0 = io.fetch_config("0")
 
 # Create a harness for Deep Q learning
-test_harness = Harness.Harness(test_conf0, all_conf)
+harness = Harness.Harness(test_conf0, all_conf)
 
 # Do a rollout
-test_harness.start_new_rollout()
-action = test_harness.action_for_state(in_data[0])
+harness.start_new_rollout()
+action = harness.action_for_state(in_data[0])
 print(f"Action 0: {action}")
-test_harness.set_reward_for_last_action(-1.0)
-action = test_harness.action_for_state(in_data[1])
+harness.set_reward_for_last_action(-1.0)
+action = harness.action_for_state(in_data[1])
 print(f"Action 1: {action}")
-test_harness.set_reward_for_last_action(5.0)
-test_harness.end_rollout()
+harness.set_reward_for_last_action(5.0)
+harness.end_rollout()
 
 # Learn from the replay buffer
-test_harness.learn_from_replay_buffer()
+harness.learn_from_replay_buffer()
 
