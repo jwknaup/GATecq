@@ -13,6 +13,7 @@ class Harness:
         self.replay_buffer_limit = 200
         self.learning_iterations = 400
         self.discount_factor = 0.95
+        self.epsilon = config["epsilon"]
         self.optimizer = torch.optim.SGD(self.qnet.parameters(), lr=config["learning_rate"], momentum=0.9)
         self.loss_fn = torch.nn.MSELoss()
     
@@ -22,12 +23,17 @@ class Harness:
         self.current_reward_list = []
 
     def action_for_state(self, state, eval_mode=False):
-        all_utilities = self.qnet(state)
+        with torch.no_grad():
+            all_utilities = self.qnet(state)
         action = torch.argmax(all_utilities)
         if not eval_mode:
+            # Epsilon-greedy
+            if random.random() < self.epsilon:
+                action = random.randint(0, all_utilities.shape[1] - 1)
+            # Record state and action
             self.current_state_list.append(state)
             self.current_action_list.append(action)
-        return torch.argmax(all_utilities)
+        return action
 
     def set_reward_for_last_action(self, reward):
         self.current_reward_list.append(reward)
