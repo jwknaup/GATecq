@@ -1,4 +1,4 @@
-#!/venv/bin/ python3
+#! /venv/bin/python3
 import sys
 import os
 import numpy as np
@@ -67,7 +67,7 @@ def main():
                  pose_msg.pose.orientation.w])
             yaw, pitch, roll = r.as_euler('zyx', degrees=False)
             state_pose = np.vstack((pose_msg.pose.position.x, pose_msg.pose.position.y, yaw))
-
+            print(jj, state_pose)
             new_state = np.vstack((state_pose, state_lidar))
             # print(new_state)
             # break if collision
