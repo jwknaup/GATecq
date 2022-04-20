@@ -6,18 +6,22 @@ import mate
 import mutate
 import correct  
 import logging
+from train import train_model
 
 def test_qnet(config, all_config, in_data):
     print(f"\n*** Candidate {config['name']} ***")
     print(config)
-    qnet = QNet.QNet(config, all_conf)
+    qnet = QNet.QNet(config, all_config)
     print(f"trainable parameters: {qnet.trainable_parameter_count()}")
     print(f"Input: {in_data[0].shape}")
     result = qnet(in_data[0])
     print(f"Output 0: {result.shape}")
     result = qnet(in_data[1])
     print(f"Output 1: {result.shape}")
-    
+
+def test_qnet_training(config, all_config, in_data):
+    policy_net = train_model(config, all_config, in_data)
+
 logging.basicConfig(level=logging.DEBUG)
 
 io = iolayer.IOLayer()
@@ -31,6 +35,7 @@ in_data = [test_data1, test_data2]
 
 test_conf0 = io.fetch_config("0")
 test_qnet(test_conf0, all_conf, in_data)
+test_qnet_training(test_conf0, all_conf, in_data)
 
 test_conf1 = io.fetch_config("1")
 test_qnet(test_conf1, all_conf, in_data)
@@ -42,6 +47,7 @@ new_name = io.new_name()
 print(f"\n*** Mating 0 and 2 to make {new_name} ***")
 child_conf = mate.mate(test_conf0, test_conf2, new_name)
 print(child_conf)
+
 print(f"\n*** Mutating {new_name} ***")
 mutate.mutate_candidate(child_conf, all_conf, 0.8, 0.8)
 
