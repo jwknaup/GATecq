@@ -62,6 +62,7 @@ class Harness:
             utility_list.insert(0, current_utility)
         self.replay_buffer_utility.append(utility_list)
 
+        # If we have too many rollouts, then remove the oldest one
         while len(self.replay_buffer_states) > self.replay_buffer_limit:
             self.replay_buffer_states.pop(0)
             self.replay_buffer_actions.pop(0)
