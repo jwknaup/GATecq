@@ -124,9 +124,4 @@ class QNet(nn.Module):
                     self.hidden_data[i] = hidden_data
                 # logging.debug(f"Layer {layer} yields {x.shape}")
 
-        return x    
-
-
-
-
-
+        return x

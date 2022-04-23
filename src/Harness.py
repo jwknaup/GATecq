@@ -93,15 +93,3 @@ class Harness:
                 loss = self.loss_fn(outputs, est_q_values)
                 loss.backward()
                 self.optimizer.step()
-
-
-
-
-    
-
-
-
-
-    
-
-
