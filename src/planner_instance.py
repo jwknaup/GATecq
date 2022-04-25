@@ -30,7 +30,6 @@ class Planner:
         self.state_dim = all_config['other_inputs'] + all_config['lidar_inputs']
         self.num_actions = all_config['possible_actions']
         # create Q-network
-        self.qnet = QNet.QNet(self.config, all_config)
         self.harness = Harness(self.config, all_config)
         self.num_rollouts = 10
         self.rollout_length = 100
@@ -40,10 +39,11 @@ class Planner:
         self.gazebo = gazebo_simulation.GazeboSimulation()
 
     def action_to_control(self, action):
-        velocities = np.linspace(-2.0, 2.0, 8)
-        yaw_rates = np.linspace(-0.5, 0.5, 8)
-        controls = np.hstack((np.vstack((velocities, np.zeros((1, 8)))), np.vstack((np.zeros((1, 8)), yaw_rates))))
-        return controls[:, action]
+        velocities = np.linspace(-2.0, 2.0, 16).reshape((1, -1))
+        yaw_rates = np.linspace(-0.5, 0.5, 8).reshape((1, -1))
+        # controls = np.hstack((np.vstack((velocities, np.zeros((1, 8)))), np.vstack((np.zeros((1, 8)), yaw_rates))))
+        controls = np.vstack((velocities, np.zeros((1, 16))))
+        return controls[:, action].reshape((-1, 1))
 
     def calculate_reward(self, state_pose):
         # TODO: smarter reward?
@@ -57,7 +57,8 @@ class Planner:
         control = self.action_to_control(action)
         print('control guess: ', control)
         gain = 1.0
-        return gain * np.array([self.goal[0, 0] - state[0, 0], 0]).reshape((-1, 1))
+        pid_control = gain * np.array([self.goal[0, 0] - state[0, 0], 0]).reshape((-1, 1))
+        return control
 
     def update_action(self, state, action):
         lidar_msg = self.gazebo.get_laser_scan()
