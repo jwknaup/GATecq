@@ -1,6 +1,8 @@
 #! /usr/bin/python3.7
 import sys
 import os
+
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from scipy.spatial.transform import Rotation
@@ -30,7 +32,6 @@ class Planner:
         self.state_dim = all_config['other_inputs'] + all_config['lidar_inputs']
         self.num_actions = all_config['possible_actions']
         # create Q-network
-        self.qnet = QNet.QNet(self.config, all_config)
         self.harness = Harness(self.config, all_config)
         self.num_rollouts = 10
         self.rollout_length = 100
@@ -40,10 +41,11 @@ class Planner:
         self.gazebo = gazebo_simulation.GazeboSimulation()
 
     def action_to_control(self, action):
-        velocities = np.linspace(-2.0, 2.0, 8)
-        yaw_rates = np.linspace(-0.5, 0.5, 8)
+        velocities = np.linspace(-2.0, 2.0, 8).reshape((1, -1))
+        yaw_rates = np.linspace(-0.5, 0.5, 8).reshape((1, -1))
         controls = np.hstack((np.vstack((velocities, np.zeros((1, 8)))), np.vstack((np.zeros((1, 8)), yaw_rates))))
-        return controls[:, action]
+        # controls = np.vstack((velocities, np.zeros((1, 16))))
+        return controls[:, action].reshape((-1, 1))
 
     def calculate_reward(self, state_pose):
         # TODO: smarter reward?
@@ -55,9 +57,10 @@ class Planner:
         state_tensor = torch.from_numpy(state.T).float()
         action = self.harness.action_for_state(state_tensor)
         control = self.action_to_control(action)
-        print('control guess: ', control)
+        # print('control guess: ', control)
         gain = 1.0
-        return gain * np.array([self.goal[0, 0] - state[0, 0], 0]).reshape((-1, 1))
+        pid_control = gain * np.array([self.goal[0, 0] - state[0, 0], 0]).reshape((-1, 1))
+        return control
 
     def update_action(self, state, action):
         lidar_msg = self.gazebo.get_laser_scan()
@@ -82,7 +85,7 @@ class Planner:
         # < s, a, r, s'>
         tau = (state, action, reward, new_state)
         state = new_state.copy()
-        print(state.shape)
+        # print(state.shape)
         # calculate control
         action = self.calculate_control(state)
         print('control: ', action)
@@ -94,6 +97,12 @@ class Planner:
         return tau
 
     def run_rollouts(self):
+        fig, (ax1, ax2) = plt.subplots(1, 2)
+        ax1.set_xlim(-10, 12)
+        ax1.set_ylim(-10, 10)
+        ax1.set_title('path')
+        ax2.set_title('loss')
+        ax1.plot(10.0, 0.0, 'ok')
         for ii in range(self.num_rollouts):
             # reset simulation
             self.gazebo.reset()
@@ -103,10 +112,13 @@ class Planner:
             self.harness.start_new_rollout()
             taus = []
             state = np.zeros((self.state_dim, 1))
+            positions = np.zeros((2, self.rollout_length))
             action = np.zeros((2, 1))
             reward_sum = 0
             for jj in range(self.rollout_length):
                 tau = self.update_action(state, action)
+                state, action, reward, new_state = tau
+                positions[:, jj] = state[:2, 0]
                 state = tau[3].copy()
                 action = tau[1].copy()
                 print(state[:2, 0])
@@ -115,6 +127,9 @@ class Planner:
                 print(jj, tau[2])
                 reward_sum += tau[2]
             self.harness.end_rollout()
+            ax1.plot(positions[0, :], positions[1, :])
+            fig.legend(['goal'] + np.arange(ii+1).tolist(), loc="upper right")
+            plt.pause(0.1)
             # # for n in N steps:
             # for tau in taus:
             #     reward_sum += tau[2]
@@ -123,7 +138,9 @@ class Planner:
             # print(ii, reward_sum)
             # Use harness instead
             print(reward_sum)
-            self.harness.learn_from_replay_buffer()
+            losses = self.harness.learn_from_replay_buffer()
+            ax2.plot(losses)
+            plt.pause(0.1)
         # report final performance
         self.config['total_reward_test'] = reward_sum
         self.io_layer.store_config(self.config)

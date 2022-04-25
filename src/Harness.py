@@ -11,10 +11,12 @@ class Harness:
         self.replay_buffer_actions = []
         self.replay_buffer_utility = []
         self.replay_buffer_limit = 200
-        self.learning_iterations = 400
+        self.learning_iterations = 50
         self.discount_factor = 0.95
         self.epsilon = config["epsilon"]
+        print(self.qnet._modules)
         self.optimizer = torch.optim.SGD(self.qnet.parameters(), lr=config["learning_rate"], momentum=0.9)
+        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, patience=25, verbose=True)
         self.loss_fn = torch.nn.MSELoss()
     
     def start_new_rollout(self):
@@ -70,6 +72,8 @@ class Harness:
     
     def learn_from_replay_buffer(self):
         rollout_count = len(self.replay_buffer_actions)
+        print('learning from ', rollout_count, ' rollouts')
+        loss_sums = []
         for i in range(self.learning_iterations):
             # Pick a random rollout
             current_rollout = random.randint(0, rollout_count - 1)
@@ -79,8 +83,9 @@ class Harness:
 
             # Clear the memory of the qnet
             self.qnet.reset_hidden()
+            loss_sum = 0
 
-            # Walk forward throught the states
+            # Walk forward through the states
             for j in range(len(current_state_list)):
                 state = current_state_list[j]
                 action = current_action_list[j]
@@ -92,4 +97,9 @@ class Harness:
                 outputs = self.qnet(state)
                 loss = self.loss_fn(outputs, est_q_values)
                 loss.backward()
+                loss_sum += loss.item()
                 self.optimizer.step()
+            print('epoch: ', i, 'loss: ', loss_sum)
+            loss_sums.append(loss_sum)
+            self.scheduler.step(loss_sum)
+        return loss_sums
