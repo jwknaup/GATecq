@@ -72,6 +72,7 @@ class QNet(nn.Module):
 
         # The last layer is always fully-connected with linear activation
         self.layers.append(nn.Linear(outshape, all_config["possible_actions"]))
+        self.layers = nn.ModuleList(self.layers)
 
     # Reset the hidden state of the network between episodes
     def reset_hidden(self):
