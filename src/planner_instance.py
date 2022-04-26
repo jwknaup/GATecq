@@ -14,7 +14,6 @@ import gazebo_simulation
 from geometry_msgs.msg import Twist
 from Harness import Harness
 
-
 class Planner:
     def __init__(self):
         rospy.init_node('rl_planner', anonymous=True)
@@ -36,8 +35,12 @@ class Planner:
         self.num_rollouts = 100
         self.rollout_length = 250
         self.rollout_dt = 0.05
+        self.close_enough = 0.1 #10 cm
+        self.final_reward_scale = 3.0
+        self.leaving_perk = 0.4 # Reward just for leaving the starting place
         self.goal = np.array([[10.0], [0.0]])
-        self.last_distance_to_go = np.linalg.norm(self.goal)
+        self.start = np.array([[0.0], [0.0]])
+        self.last_distance_to_go = np.linalg.norm(self.start - self.goal)
         # for num rollouts (same world):
         self.gazebo = gazebo_simulation.GazeboSimulation()
 
@@ -49,10 +52,9 @@ class Planner:
         return controls[:, action].reshape((-1, 1))
 
     def calculate_reward(self, state_pose):
-        distance_to_go = np.linalg.norm(state_pose[:2, :] - self.goal)
+        distance_to_go =  state_pose[7, 0]
         reward = self.last_distance_to_go - distance_to_go
         self.last_distance_to_go = distance_to_go
-        print(f"Reward = {reward:.2f}:{distance_to_go:.2f}")
         return reward
 
     def calculate_control(self, state):
@@ -78,7 +80,22 @@ class Planner:
             [pose_msg.pose.orientation.x, pose_msg.pose.orientation.y, pose_msg.pose.orientation.z,
              pose_msg.pose.orientation.w])
         yaw, pitch, roll = r.as_euler('zyx', degrees=False)
-        state_pose = np.vstack((pose_msg.pose.position.x, pose_msg.pose.position.y, math.cos(yaw), math.sin(yaw)))
+        
+        position = np.array([pose_msg.pose.position.x, pose_msg.pose.position.y])
+        delta_to_start = self.start[:,0] - position
+        distance_to_start = np.linalg.norm(delta_to_start)
+        angle_to_start = math.atan2(delta_to_start[1], delta_to_start[0])
+        relative_angle_to_start = angle_to_start - yaw
+       
+        delta_to_goal = self.goal[:,0] - position
+        distance_to_goal = np.linalg.norm(delta_to_goal)
+        angle_to_goal = math.atan2(delta_to_goal[1], delta_to_goal[0])
+        relative_angle_to_goal = angle_to_goal - yaw
+
+        # print(f"yaw:{yaw/math.pi:.2f} pi radians, angle to start:{relative_angle_to_start/math.pi:.2f} pi radians, angle to goal:{relative_angle_to_goal/math.pi:.2f} pi radians")
+        
+        state_pose = np.vstack((pose_msg.pose.position.x, pose_msg.pose.position.y, math.cos(relative_angle_to_start), math.sin(relative_angle_to_start), distance_to_start , math.cos(relative_angle_to_goal), math.sin(relative_angle_to_goal), distance_to_goal))        
+        # state_pose = np.vstack((pose_msg.pose.position.x, pose_msg.pose.position.y, math.cos(yaw), math.sin(yaw)))
         new_state = np.vstack((state_pose, state_lidar))
         # break if collision
         # calculate reward
@@ -123,11 +140,20 @@ class Planner:
                 positions[:, jj] = state[:2, 0]
                 state = tau[3].copy()
                 action = tau[1].copy()
-                print(state[:2, 0])
+                # print(state[:2, 0])
                 # taus[:, jj] = tau
                 control_update_rate.sleep()
-                print(jj, tau[2])
+                print(f"{jj}:{state[:2,0]} -> {tau[2]:.3f}")
                 reward_sum += tau[2]
+                if state[7, 0] < self.close_enough:
+                    print(f"****** Close enough to goal. Exiting ***************")
+                    break
+
+            distance_to_goal = state[7,0]
+            distance_from_start = state[4,0]
+            final_reward = self.leaving_perk * distance_from_start + self.final_reward_scale * (10.0 - distance_to_goal)
+            print(f"Final reward: {final_reward:.3f}")
+            self.harness.replace_reward_for_last_action(final_reward)
             self.harness.end_rollout()
             ax1.plot(positions[0, :], positions[1, :])
             fig.legend(['goal'] + np.arange(ii+1).tolist(), loc="upper right")
@@ -145,7 +171,8 @@ class Planner:
             plt.pause(0.1)
         # report final performance
         self.config['total_reward_test'] = reward_sum
-        self.io_layer.store_config(self.config)
+        # I don't think we should be overwriting configs this way
+        # self.io_layer.store_config(self.config)
 
 
 def main():

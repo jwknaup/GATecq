@@ -15,7 +15,7 @@ class Harness:
         self.discount_factor = 0.7
         self.epsilon = config["epsilon"]
         print(self.qnet._modules)
-        self.optimizer = torch.optim.SGD(self.qnet.parameters(), lr=config["learning_rate"], momentum=0.5)
+        self.optimizer = torch.optim.SGD(self.qnet.parameters(), lr=config["learning_rate"], momentum=0.95)
         self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, patience=25, verbose=True)
         self.loss_fn = torch.nn.MSELoss()
     
@@ -49,6 +49,9 @@ class Harness:
     def set_reward_for_last_action(self, reward):
         self.current_reward_list.append(reward)
 
+    def replace_reward_for_last_action(self,reward):
+        self.current_reward_list[-1] = reward
+        
     def end_rollout(self):
         # Move the data for the current rollout into the replay buffer
         self.replay_buffer_states.append(self.current_state_list)
