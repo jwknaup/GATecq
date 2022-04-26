@@ -1,7 +1,7 @@
-#! /usr/bin/python3.7
+#! /usr/bin/python3.8
 import sys
 import os
-
+import math
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -33,10 +33,11 @@ class Planner:
         self.num_actions = all_config['possible_actions']
         # create Q-network
         self.harness = Harness(self.config, all_config)
-        self.num_rollouts = 10
-        self.rollout_length = 100
+        self.num_rollouts = 100
+        self.rollout_length = 250
         self.rollout_dt = 0.05
         self.goal = np.array([[10.0], [0.0]])
+        self.last_distance_to_go = np.linalg.norm(self.goal)
         # for num rollouts (same world):
         self.gazebo = gazebo_simulation.GazeboSimulation()
 
@@ -48,9 +49,11 @@ class Planner:
         return controls[:, action].reshape((-1, 1))
 
     def calculate_reward(self, state_pose):
-        # TODO: smarter reward?
-        weight = 1.0
-        return weight / np.linalg.norm(state_pose[:2, :] - self.goal)
+        distance_to_go = np.linalg.norm(state_pose[:2, :] - self.goal)
+        reward = self.last_distance_to_go - distance_to_go
+        self.last_distance_to_go = distance_to_go
+        print(f"Reward = {reward:.2f}:{distance_to_go:.2f}")
+        return reward
 
     def calculate_control(self, state):
         # TODO ensure state/input dims match, run forward pass of qnet and parse Q function output into a control
@@ -75,9 +78,8 @@ class Planner:
             [pose_msg.pose.orientation.x, pose_msg.pose.orientation.y, pose_msg.pose.orientation.z,
              pose_msg.pose.orientation.w])
         yaw, pitch, roll = r.as_euler('zyx', degrees=False)
-        state_pose = np.vstack((pose_msg.pose.position.x, pose_msg.pose.position.y, yaw))
+        state_pose = np.vstack((pose_msg.pose.position.x, pose_msg.pose.position.y, math.cos(yaw), math.sin(yaw)))
         new_state = np.vstack((state_pose, state_lidar))
-        # print(new_state)
         # break if collision
         # calculate reward
         reward = self.calculate_reward(new_state)
@@ -88,7 +90,7 @@ class Planner:
         # print(state.shape)
         # calculate control
         action = self.calculate_control(state)
-        print('control: ', action)
+        # print('control: ', action)
         # print(action)
         vel_cmd = Twist()
         vel_cmd.linear.x = action[0, 0]

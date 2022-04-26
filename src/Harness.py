@@ -12,10 +12,10 @@ class Harness:
         self.replay_buffer_utility = []
         self.replay_buffer_limit = 200
         self.learning_iterations = 50
-        self.discount_factor = 0.95
+        self.discount_factor = 0.7
         self.epsilon = config["epsilon"]
         print(self.qnet._modules)
-        self.optimizer = torch.optim.SGD(self.qnet.parameters(), lr=config["learning_rate"], momentum=0.9)
+        self.optimizer = torch.optim.SGD(self.qnet.parameters(), lr=config["learning_rate"], momentum=0.5)
         self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, patience=25, verbose=True)
         self.loss_fn = torch.nn.MSELoss()
     

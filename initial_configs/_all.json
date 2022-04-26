@@ -1,5 +1,5 @@
 {
 	"lidar_inputs": 720,
-	"other_inputs": 3,
+	"other_inputs": 4,
 	"possible_actions":16
 }
