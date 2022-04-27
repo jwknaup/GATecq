@@ -6,7 +6,10 @@ import random
 class Harness:
 
     def __init__(self, config, all_config):
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        print('PyTorch is using ', self.device)
         self.qnet = QNet.QNet(config, all_config)
+        self.qnet.to(self.device)
         self.replay_buffer_states = []
         self.replay_buffer_actions = []
         self.replay_buffer_utility = []
@@ -30,7 +33,7 @@ class Harness:
     def action_for_state(self, state, eval_mode=False):
         # Don't learn here
         with torch.no_grad():
-            all_utilities = self.qnet(state)
+            all_utilities = self.qnet(state.to(self.device))
 
         # This is what our network thinks is the best action
         action = torch.argmax(all_utilities)
@@ -94,10 +97,10 @@ class Harness:
                 action = current_action_list[j]
                 utility = current_utility_list[j]
                 with torch.no_grad():
-                    est_q_values = self.qnet(state)
+                    est_q_values = self.qnet(state.to(self.device))
                     est_q_values[0, action] = utility
                 self.optimizer.zero_grad()
-                outputs = self.qnet(state)
+                outputs = self.qnet(state.to(self.device))
                 loss = self.loss_fn(outputs, est_q_values)
                 loss.backward()
                 loss_sum += loss.item()
