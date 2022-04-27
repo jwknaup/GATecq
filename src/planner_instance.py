@@ -158,7 +158,7 @@ class Planner:
             self.harness.end_rollout()
             ax1.plot(positions[0, :], positions[1, :])
             fig.legend(['goal'] + np.arange(ii+1).tolist(), loc="upper right")
-            plt.pause(0.1)
+            plt.pause(0.5)
             # # for n in N steps:
             # for tau in taus:
             #     reward_sum += tau[2]
@@ -169,11 +169,14 @@ class Planner:
             print(reward_sum)
             losses = self.harness.learn_from_replay_buffer()
             ax2.plot(losses)
-            plt.pause(0.1)
+            plt.pause(0.5)
         # report final performance
         self.config['total_reward_test'] = reward_sum
         # I don't think we should be overwriting configs this way
-        # self.io_layer.store_config(self.config)
+        self.io_layer.store_config(self.config)
+        save_path = os.path.join(self.io_layer.config_folder, self.config['name'])
+        plt.savefig(save_path, dpi=600)
+        torch.save(self.harness.qnet.state_dict(), save_path+'.pth')
 
 
 def main():

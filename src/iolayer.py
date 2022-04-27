@@ -9,6 +9,7 @@ import random
 class IOLayer:
     def __init__(self, config_folder):
         self.config_folder = config_folder
+        self.index = 6
 
     # Get the data shared by all configurations
     def fetch_all_config(self):

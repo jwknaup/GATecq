@@ -4,8 +4,9 @@ import random
 import logging
 import QNet
 
+
 # Basic sanity check/corrections for mutated candidates
-def correct_candidate(candidate, all):
+def correct_candidate(candidate, all, expansion):
 
     # Every candidate should have at least one recurrent layer
     has_recurrent = False

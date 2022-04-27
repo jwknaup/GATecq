@@ -4,6 +4,7 @@ import random
 import logging
 import QNet
 
+
 def mutate_layer(layer, all, expansion, mutation_rate):
     # Start with an exact copy
     result = layer.copy()
@@ -80,6 +81,7 @@ def mutate_conv(conv, all, expansion, mutation_rate):
 
     return result
 
+
 # mutate() takes a candidate configuration, the common data for all candidates,
 # an expansion ( <1 means less complexity, >1 means more complexity), and
 # a mutation rate (0-1) which indicates how big and common mutations are.
@@ -114,8 +116,3 @@ def mutate_candidate(candidate, all, expansion, mutation_rate):
         if random.random() < layer_mutation_probability:
             logging.debug(f"Mutating layer {i}")
             candidate['layers'][i] = mutate_layer(candidate['layers'][i], all, expansion, mutation_rate)
-
-
-        
-        
-        

@@ -77,6 +77,7 @@ def mix_lidar_convs(a, b):
 
     return result
 
+
 # Main function takes configuration for two systems and returns
 # a new configuration that is a mix of the two
 def mate(a, b, new_name):
@@ -100,7 +101,7 @@ def mate(a, b, new_name):
     b_layers = b['layers']
     min_layer_count = min(len(a_layers), len(b_layers))
     max_layer_count = max(len(a_layers), len(b_layers))
-    layer_count = np.random.randint(min_layer_count, max_layer_count)
+    layer_count = np.random.random_integers(min_layer_count, max_layer_count)
     result_layers = []
     for i in range(layer_count):
         if i < min_layer_count:
