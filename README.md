@@ -22,3 +22,13 @@ planner_instance.py to point to your python executable for this project
 which you can find by running `which python` (or `which python3` etc depending on how you run python).
 Sorry I couldn't find a good way to make this more general.
 
+## Running batches in Singularity
+1. Ensure you have installed Singularity and its dependencies by following the instructions at
+https://github.com/Daffan/nav-competition-icra2022
+2. Check to make sure the python version in the shebang line at the top of planner_instance.py matches
+the python version installed in the Singularity image in the Singularityfile.def file
+3. Build the singularity image `sudo singularity build --notest planner_sim_instance_image.sif Singularityfile.def`.
+This will take some time but should only need to be done once unless you need to change the installed packages
+4. Run `batch_run.sh`. This will run the spawn_planners.py script which will run multiple singularity images simultaneously,
+where each contains its own ROS network, simulation, and `planner_instance`. The environments will train and then `spawn_planners`
+will breed new configs and launch new planners for multiple generations.

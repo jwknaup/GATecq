@@ -4,9 +4,9 @@ import iolayer
 
 
 def main():
-    num_generations = 1
+    num_generations = 2
     num_instances = 2
-    config_folder = '../initial_configs'
+    config_folder = 'initial_configs'
     io_layer = iolayer.IOLayer(config_folder)
     # identify initial configs
     configs = [0, 1]
@@ -16,7 +16,7 @@ def main():
         children = set()
         for jj in range(num_instances):
             # spawn trainers
-            cmd = ['./singularity_run.sh', '/path/to/image/file', 'roslaunch', 'rl_planner', 'rl_trainer_sim_instance.launch', 'rl_config:={}'.format(configs[jj]), 'config_folder:={}'.format(config_folder)]
+            cmd = ['./singularity_run.sh', 'planner_sim_instance_image.sif', 'roslaunch', 'gatecq', 'rl_trainer_sim_instance.launch', 'rl_config:={}'.format(configs[jj]), 'config_folder:={}'.format(config_folder)]
             p = subprocess.Popen(cmd)
             children.add(p)
         # join()
