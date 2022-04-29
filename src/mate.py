@@ -11,7 +11,7 @@ def float_between(a, b, key):
 def int_between(a, b, key):
     min_value = min(a[key], b[key])
     max_value = max(a[key], b[key])
-    return np.random.randint(min_value, max_value)
+    return random.randint(min_value, max_value)
 
 # Merges layers
 def mix_layers(a, b):

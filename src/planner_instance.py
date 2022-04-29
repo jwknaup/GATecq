@@ -1,4 +1,4 @@
-#! /usr/bin/python3.8
+#! /usr/bin/python3.7
 import sys
 import os
 import math
@@ -39,11 +39,11 @@ class Planner:
         self.close_enough = 0.1 #10 cm
         self.final_reward_scale = 3.0
         self.leaving_perk = 0.4 # Reward just for leaving the starting place
-        self.goal = np.array([[10.0], [0.0]])
-        self.start = np.array([[0.0], [0.0]])
+        self.start = np.array([[-2.0], [3.0]]) #[-2, 3, 1.57]
+        self.goal = self.start + np.array([[0.0], [10.0]])
         self.last_distance_to_go = np.linalg.norm(self.start - self.goal)
         # for num rollouts (same world):
-        self.gazebo = gazebo_simulation.GazeboSimulation()
+        self.gazebo = gazebo_simulation.GazeboSimulation(init_position=self.start.flatten().tolist()+[1.57])
 
     def action_to_control(self, action):
         velocities = np.linspace(-2.0, 2.0, 8).reshape((1, -1))
@@ -53,9 +53,11 @@ class Planner:
         return controls[:, action].reshape((-1, 1))
 
     def calculate_reward(self, state_pose):
-        distance_to_go =  state_pose[7, 0]
+        distance_to_go = state_pose[7, 0]
         reward = self.last_distance_to_go - distance_to_go
-        self.last_distance_to_go = distance_to_go
+        self.last_distance_to_go = distance_to_go.copy()
+        collision_cost = 0.1
+        reward -= collision_cost * self.gazebo.get_hard_collision()
         return reward
 
     def calculate_control(self, state):
@@ -75,7 +77,7 @@ class Planner:
         ranges = np.where(np.asarray(lidar_msg.ranges) > lidar_msg.range_max, lidar_msg.range_max,
                           np.asarray(lidar_msg.ranges))
         state_lidar = np.array(ranges).reshape((-1, 1))
-        collision = self.gazebo.get_hard_collision()
+        # collision = self.gazebo.get_hard_collision()
         pose_msg = self.gazebo.get_model_state()
         r = Rotation.from_quat(
             [pose_msg.pose.orientation.x, pose_msg.pose.orientation.y, pose_msg.pose.orientation.z,
@@ -118,11 +120,11 @@ class Planner:
 
     def run_rollouts(self):
         fig, (ax1, ax2) = plt.subplots(1, 2)
-        ax1.set_xlim(-10, 12)
-        ax1.set_ylim(-10, 10)
+        ax1.set_xlim(-5.5, 1)
+        ax1.set_ylim(-1, 15)
         ax1.set_title('path')
         ax2.set_title('loss')
-        ax1.plot(10.0, 0.0, 'ok')
+        ax1.plot(self.goal[0, 0], self.goal[1, 0], 'ok')
         for ii in range(self.num_rollouts):
             # reset simulation
             self.gazebo.reset()
@@ -130,10 +132,10 @@ class Planner:
             control_update_rate = rospy.Rate(int(1 / self.rollout_dt))
             # run planner for N steps and record taus
             self.harness.start_new_rollout()
-            taus = []
             state = np.zeros((self.state_dim, 1))
+            state[:2, :] = self.start.copy()
             positions = np.zeros((2, self.rollout_length))
-            action = np.zeros((2, 1))
+            action = self.calculate_control(state)
             reward_sum = 0
             for jj in range(self.rollout_length):
                 tau = self.update_action(state, action)
@@ -141,7 +143,6 @@ class Planner:
                 positions[:, jj] = state[:2, 0]
                 state = tau[3].copy()
                 action = tau[1].copy()
-                # print(state[:2, 0])
                 # taus[:, jj] = tau
                 control_update_rate.sleep()
                 print(f"{jj}:{state[:2,0]} -> {tau[2]:.3f}")
@@ -154,7 +155,7 @@ class Planner:
             distance_from_start = state[4,0]
             final_reward = self.leaving_perk * distance_from_start + self.final_reward_scale * (10.0 - distance_to_goal)
             print(f"Final reward: {final_reward:.3f}")
-            self.harness.replace_reward_for_last_action(final_reward)
+            self.harness.set_reward_for_last_action(final_reward)
             self.harness.end_rollout()
             ax1.plot(positions[0, :], positions[1, :])
             fig.legend(['goal'] + np.arange(ii+1).tolist(), loc="upper right")
@@ -168,7 +169,7 @@ class Planner:
             # Use harness instead
             print(reward_sum)
             losses = self.harness.learn_from_replay_buffer()
-            ax2.plot(losses)
+            ax2.plot(losses, '.')
             plt.pause(0.5)
         # report final performance
         self.config['total_reward_test'] = reward_sum

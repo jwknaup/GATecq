@@ -57,7 +57,6 @@ class QNet(nn.Module):
                 if "dropout" in layer_dict:
                     self.layers.append(nn.Dropout(layer_dict["dropout"]))
             elif layertype == "lstm":
-                dropout = layer_dict["dropout"]
                 self.layers.append(nn.LSTM(outshape, output_dim))
                 if "dropout" in layer_dict:
                     self.layers.append(nn.Dropout(layer_dict["dropout"]))

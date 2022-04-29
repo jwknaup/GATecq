@@ -2,7 +2,7 @@
   <arg name="use_sim_time" default="true" />
   <arg name="gui" default="false" />
   <arg name="headless" default="false" />
-  <arg name="world_name" default="$(find jackal_helper)/worlds/jackal_race.world" />
+  <arg name="world_name" default="$(find jackal_helper)/worlds/BARN/world_1.world" />
   <arg name="rl_config" default="0" />
   <arg name="config_folder" default="initial_configs" />
 

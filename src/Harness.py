@@ -1,6 +1,7 @@
 import QNet
 import torch
 import random
+import numpy as np
 
 
 class Harness:
@@ -42,7 +43,7 @@ class Harness:
         if not eval_mode:
             # Epsilon-greedy
             if random.random() < self.epsilon:
-                action = random.randint(0, all_utilities.shape[1] - 1)
+                action = np.random.randint(0, all_utilities.shape[1])
             # Record state and action
             self.current_state_list.append(state)
             self.current_action_list.append(action)
@@ -105,7 +106,7 @@ class Harness:
                 loss.backward()
                 loss_sum += loss.item()
                 self.optimizer.step()
-            print('epoch: ', i, 'loss: ', loss_sum)
+            print('epoch: ', i, 'rollout: ', current_rollout, 'loss: ', loss_sum)
             loss_sums.append(loss_sum)
             self.scheduler.step(loss_sum)
         return loss_sums
