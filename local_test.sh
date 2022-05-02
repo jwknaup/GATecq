@@ -1,5 +1,4 @@
 #!/bin/bash
 source /opt/ros/$ROS_DISTRO/setup.bash
 source $HOME/jackal_ws/devel/setup.bash
-log=log_file.log
-python3 src/spawn_planners.py | tee log_file.log
+roslaunch gatecq rl_sim_instance.launch gui:=true rl_config:=38

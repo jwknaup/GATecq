@@ -10,11 +10,11 @@ import correct
 
 def main():
     num_generations = 10
-    num_instances = 8
+    num_instances = 4
     config_folder = 'initial_configs'
     io_layer = iolayer.IOLayer(config_folder)
     # identify initial configs
-    configs = [0, 1, 2, 3, 4, 5, 6, 7]
+    configs = [6, 7, 8, 9]
     # BARN world
     world_index = 1
     world_name = "BARN/world_{}.world".format(world_index)

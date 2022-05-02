@@ -25,15 +25,18 @@ class Planner:
         print(args)
         config_name = args[1]
         config_folder = os.path.join(package_path, args[2])
+        self.config_folder = config_folder
         # read in hyper parameters
         self.io_layer = iolayer.IOLayer(config_folder)
         self.config = self.io_layer.fetch_config(config_name)
         all_config = self.io_layer.fetch_all_config()
+        self.all_config = all_config
         self.state_dim = all_config['other_inputs'] + all_config['lidar_inputs']
         self.num_actions = all_config['possible_actions']
         # create Q-network
         self.harness = Harness(self.config, all_config)
-        self.num_rollouts = 20
+        self.harness.qnet.load_state_dict(torch.load(os.path.join(config_folder, config_name) + '.pth'))
+        self.num_rollouts = 5
         self.rollout_dt = 0.1
         self.motion_primitives = self.config['motion_primitives']
         if self.motion_primitives:
@@ -151,19 +154,23 @@ class Planner:
         return tau
 
     def run_rollouts(self):
-        fig, (ax1, ax2) = plt.subplots(1, 2)
-        ax1.set_xlim(-5.5, 1)
-        ax1.set_ylim(-1, 15)
-        ax1.set_title('path')
-        ax2.set_title('loss')
-        ax1.plot(self.goal[0, 0], self.goal[1, 0], 'ok')
+        plt.figure
+        plt.xlim(-5.5, 1)
+        plt.ylim(-1, 15)
+        plt.title('path')
+        plt.xlabel('X (m)')
+        plt.ylabel('Y (m)')
+        # ax2.set_title('loss')
+        plt.plot([-5.5, 1.0], [10.0, 10.0], 'k')
         for ii in range(self.num_rollouts):
+            self.harness = Harness(self.config, self.all_config)
+            self.harness.qnet.load_state_dict(torch.load(os.path.join(self.config_folder, self.config['name']) + '.pth'))
             # reset simulation
             self.gazebo.reset()
             # start planner
             control_update_rate = rospy.Rate(int(1 / self.rollout_dt))
             # run planner for N steps and record taus
-            self.harness.start_new_rollout()
+            self.harness.start_new_rollout(0.0)
             state = np.zeros((self.state_dim, 1))
             state[:2, :] = self.start.copy()
             positions = np.zeros((2, self.rollout_length))
@@ -179,7 +186,7 @@ class Planner:
                 control_update_rate.sleep()
                 print(f"{jj}:{state[:2,0]} -> {tau[2]:.3f}")
                 reward_sum += tau[2]
-                if state[7, 0] < self.close_enough or state[1, 0] > 13.0:
+                if state[7, 0] < self.close_enough or state[1, 0] > 10.5:
                     print(f"****** Close enough to goal ***************")
                     reward = 2.0
                     break
@@ -190,8 +197,8 @@ class Planner:
             print(f"Final reward: {final_reward:.3f}")
             self.harness.set_reward_for_last_action(final_reward)
             self.harness.end_rollout()
-            ax1.plot(positions[0, :], positions[1, :])
-            fig.legend(['goal'] + np.arange(ii+1).tolist(), loc="upper right")
+            plt.plot(positions[0, :jj+1], positions[1, :jj+1])
+            plt.legend(['goal'] + np.arange(ii+1).tolist(), loc="upper right")
             plt.pause(0.5)
             # # for n in N steps:
             # for tau in taus:
@@ -201,16 +208,16 @@ class Planner:
             # print(ii, reward_sum)
             # Use harness instead
             print(reward_sum)
-            losses = self.harness.learn_from_replay_buffer()
-            ax2.plot(losses, '.')
-            plt.pause(0.5)
+            # losses = self.harness.learn_from_replay_buffer()
+            # ax2.plot(losses, '.')
+            # plt.pause(0.5)
         # report final performance
-        self.config['total_reward_test'] = reward_sum
+        # self.config['total_reward_test'] = reward_sum
         # I don't think we should be overwriting configs this way
-        self.io_layer.store_config(self.config)
+        # self.io_layer.store_config(self.config)
         save_path = os.path.join(self.io_layer.config_folder, self.config['name'])
-        plt.savefig(save_path, dpi=600)
-        torch.save(self.harness.qnet.state_dict(), save_path+'.pth')
+        plt.savefig(save_path+'_test5', dpi=600)
+        # torch.save(self.harness.qnet.state_dict(), save_path+'.pth')
 
 
 def main():

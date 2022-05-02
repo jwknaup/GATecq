@@ -16,14 +16,18 @@ class Harness:
         self.replay_buffer_utility = []
         self.replay_buffer_limit = 200
         self.learning_iterations = 50
-        self.discount_factor = 0.7
+        self.discount_factor = config["discount_factor"]
         self.epsilon = config["epsilon"]
+        self.learning_rate = config["learning_rate"]
+        self.relearning_rate = config["relearning_rate"]
         print(self.qnet._modules)
-        self.optimizer = torch.optim.SGD(self.qnet.parameters(), lr=config["learning_rate"], momentum=0.95)
+        self.optimizer = torch.optim.SGD(self.qnet.parameters(), lr=self.learning_rate, momentum=0.95)
         self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, patience=25, verbose=True)
         self.loss_fn = torch.nn.MSELoss()
     
-    def start_new_rollout(self):
+    def start_new_rollout(self, epsilon_factor=1.0):
+        self.epsilon *= epsilon_factor
+        print('epsilon: ', self.epsilon)
         # Make lists to hold the data from this rollout
         self.current_state_list = []
         self.current_action_list = []
@@ -35,6 +39,7 @@ class Harness:
         # Don't learn here
         with torch.no_grad():
             all_utilities = self.qnet(state.to(self.device))
+            print(all_utilities)
 
         # This is what our network thinks is the best action
         action = torch.argmax(all_utilities)
@@ -81,9 +86,23 @@ class Harness:
         rollout_count = len(self.replay_buffer_actions)
         print('learning from ', rollout_count, ' rollouts')
         loss_sums = []
-        for i in range(self.learning_iterations):
-            # Pick a random rollout
-            current_rollout = random.randint(0, rollout_count - 1)
+        for i in range(self.learning_iterations * 2*(rollout_count+1)):
+            # Pick a rollout
+            if i < self.learning_iterations:
+                for g in self.optimizer.param_groups:
+                    g['lr'] = self.learning_rate
+                current_rollout = -1
+            elif i < self.learning_iterations * (rollout_count + 1):
+                for g in self.optimizer.param_groups:
+                    g['lr'] = self.relearning_rate
+                simple_prob_fxn = (np.arange(rollout_count) + 1) / np.sum((np.arange(rollout_count) + 1))
+                current_rollout = np.random.choice(np.arange(rollout_count), size=1, p=simple_prob_fxn)
+                current_rollout = int(current_rollout)
+                current_rollout = int(i / (self.learning_iterations * 1.0)) - 1
+                if current_rollout >= rollout_count:
+                    current_rollout = -1
+            elif i % 20 == 0:
+                current_rollout = random.randint(0, rollout_count-1)
             current_state_list = self.replay_buffer_states[current_rollout]
             current_action_list = self.replay_buffer_actions[current_rollout]
             current_utility_list = self.replay_buffer_utility[current_rollout]
@@ -108,5 +127,5 @@ class Harness:
                 self.optimizer.step()
             print('epoch: ', i, 'rollout: ', current_rollout, 'loss: ', loss_sum)
             loss_sums.append(loss_sum)
-            self.scheduler.step(loss_sum)
+            # self.scheduler.step(loss_sum)
         return loss_sums

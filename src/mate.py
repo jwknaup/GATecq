@@ -87,6 +87,10 @@ def mate(a, b, new_name):
     result['creation_time'] = datetime.datetime.utcnow().isoformat(timespec='seconds')
     result['learning_rate'] = float_between(a, b, 'learning_rate')
     result['epsilon'] = float_between(a, b, 'epsilon')
+    result["final_reward_scale"] = float_between(a, b, 'final_reward_scale')
+    result["motion_primitives"] = int_between(a, b, 'motion_primitives')
+    result["discount_factor"] = float_between(a, b, 'discount_factor')
+    result["relearning_rate"] = float_between(a, b, 'relearning_rate')
 
     if 'lidar_conv' in a and 'lidar_conv' in b:
         result['lidar_conv'] = mix_lidar_convs(a['lidar_conv'], b['lidar_conv']);
